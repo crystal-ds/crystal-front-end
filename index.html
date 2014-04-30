@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Exploratory Modeling Engine</title>
+		
+		<script type="text/javascript" src="js/EMEFE.js"></script>
+
+ <!--
+  <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+  <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+-->
+		
+		
+		
+		
+		<link rel="stylesheet" type="text/css" media="screen" href="css/jquery.aristo.css" />
+		<!-- link rel="stylesheet" href="css/tables.css" / -->
+		<link rel="stylesheet" href="css/EMEFE.css" />
+		<link rel="stylesheet" href="css/jquery.multiselect.css" />
+		
+        <script type="text/javascript" src="js/jquery-1.4.4.min.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.8.9.min.js"></script>
+        <script type="text/javascript" src="js/jquery.flot.min.js"></script>
+        <script type="text/javascript" src="js/jstat-0.1.0.min.js"></script>
+		  <script type="text/javascript" src="js/jquery.multiselect.js"></script>
+		  <script type="text/javascript" src="js/sorter/jquery.tablesorter.js"></script> 
+		  <script type="text/javascript" src="js/sorter/addons/pager/jquery.tablesorter.pager.js"></script> 
+		
+		
+
+	</head>
+	<body onload="EME.init()">
+		<div class='largetitle'> Exploratory Modeling Engine </div>
+		<br/>
+		
+			<table border-collapse="collapse">
+			<tr>
+			<td>
+			Model: 
+			<select id="modelSelector" onchange="EME.modelSelected(this)"></select>
+			<select id="factorSelector" name="factorSelector" multiple="multiple">
+				<optgroup id="opt-ic" label="Initial Conditions">
+
+				</optgroup>
+				<optgroup id="opt-iv" label="Intermediary Variables">
+
+				</optgroup>
+				<optgroup id="opt-coa"label="Courses Of Action">
+
+				</optgroup>
+			</select>
+			</td>
+			<td>
+			<span id="totalCases" class="topSpan">
+				Total number of cases: 0 
+			</span>
+			</br>
+			<span id="estimatedTime" class="topSpan">
+				Estimated Time: 0:0:0 
+			</span>
+			<td>
+				<div id="plot" style="width:500px; height: 200px;"></div>
+			<td>
+			</tr></table>
+			
+		
+		
+		
+
+	<div id="factorTableDiv"></div>
+	
+	<div id="resultsDiv">
+	<button id="Submit" onclick="EME.generateModelRuns()">Submit</button>
+	<span id="results" class="topSpan">
+	</span>
+	
+	</div>
+
+
+	</body>
+</html>
