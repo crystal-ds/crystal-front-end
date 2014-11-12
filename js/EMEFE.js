@@ -1,5 +1,7 @@
 EME = {
-
+	hostName: "https://localhost:8443/",
+	modelDataRanges: {},
+	currentModel: "",
 	init: function(){
 
 	
@@ -14,7 +16,6 @@ EME = {
 			   minWidth: 300
 			   
 			});
-			
 			
 			
 			$("#factorSelector").multiselect('disable');
@@ -59,9 +60,7 @@ EME = {
 			
 		
 		$.ajax({
-			url: "http://crystal.mitre.org:8080/crystal-a2c2/eme/models",
-			//url: "https://a2c2srv.mitre.org:8443/crystal-a2c2/eme/models",
-			//url: "https://a2c2srv.mitre.org:8443/tailorcore/sources.json",
+			url: EME.hostName + "crystal-a2c2/eme/models",
 			contentType:"application/x-javascript;",
 			type:"GET",
 			success:function(data) {
@@ -144,16 +143,21 @@ EME = {
 					case "RANGE":	
 						console.log("In Range");
 					
-						EME.addSlider(number,input.name,input.properties.min,input.properties.max,input.properties.lower,input.properties.upper,0);
+						EME.addSlider(number,input.name,input.properties.min,input.properties.max,input.properties.value,input.properties.value,0, input.type);
 						break;
 					case "FLOAT":		
 						console.log("In Float");
-						EME.addSlider(number,input.name,input.properties.min,input.properties.max,input.properties.min,input.properties.max,0);
+						EME.addSlider(number,input.name,input.properties.min,input.properties.max,input.properties.value,input.properties.value,0, input.type);
 						break;
 					case "INTEGER":		
 						console.log("In Int");
-						EME.addSlider(number,input.name,input.properties.min,input.properties.max,input.properties.min,input.properties.max,0);
+						EME.addSlider(number,input.name,input.properties.min,input.properties.max,input.properties.value,input.properties.value,0, input.type);
 						break;
+					case "STRING":		
+						console.log("In String, but pretending to be options");
+						EME.addSelection(number,input.name,input.properties.regex.split("|"),0, input.type);
+						break;	
+					
 
 					default:
 						console.log("In def");
@@ -173,9 +177,13 @@ EME = {
 	modelSelected: function(dropDown) {
 		console.log('What?');
 		console.log(dropDown);
+		EME.modelDataRanges = {};
+		
 		var model = dropDown.options[dropDown.selectedIndex].value
 		console.log(model);
-		
+		EME.currentModel = EME.modelsDic[model]
+		console.log("CURRENT MODEL");
+		console.log(EME.currentModel);
 		if (model == ""){
 			$("#factorTableDiv").html('');
 			$('#totalCases').hide();
@@ -202,7 +210,7 @@ EME = {
 			
 		}
 		
-		EME.modelDataRanges = {};
+		
 	
 	
 	},
@@ -229,6 +237,87 @@ EME = {
 	
 	}
 	,
+	
+	
+	addSelection: function(number, name, options, index, type){
+		console.log("Adding Selection:" + number +"|" +  name +"|" +  options +"|" + index+"|")
+		//This needs to be computed from number of cases
+		console.log(name.replace(/[\*]/g, ''));
+		var showName = name.indexOf('*') >= 0 ? "hidden" : "visible";
+		var tableRow = '<tr id="row-' + number + '"><td style="visibility:' + showName + ';">' + name + '</td><td>'  +
+					'<select id="selection-drop' +
+					'-' + number + '" style="width:250px;" multiple="multiple"></select>' + 
+					'</td><td>' + 
+					'<input checked="checked" type="radio" name="dist'  + '-' + number +   '" id="rd1 '  + '-' + number +   '" value="Normal"/ disabled>' + 
+					'<label for="rd1 '  + '-' + number +   '">Normal</label><br/>' +
+					'<input  type="radio" name="dist'  + '-' + number +   '" id="rd2 '  + '-' + number +   '" value="Equal" checked="checked"/>' + 
+					'<label for="rd2 '  + '-' + number +   '">Equal</label><br/>' + 
+					'</td><td><input class="cases ' + name.replace(/[\*,\s]/g, '') + '"size="2" maxlength="4" value="' + options.length + '" id="cases'  + '-' + number +'" disabled></input></td><td>'  + 				
+					'</td></tr>';
+					
+		if (index <= 0){
+			$('#factorTable').append(tableRow);
+		}
+		else {
+			$('#factorTable > tbody > tr').eq(index).after(tableRow);
+		
+		}
+		$('input[name="dist-' + number + '"]').change(function() {
+		
+
+			EME.plotDistNominal([[number,type]])
+		
+		
+		
+		});
+		$('#cases' + '-' + number).keyup(function() {
+			
+		
+			EME.calculateCases();
+				
+
+			EME.plotDistNominal([[number,type]])
+			
+			}
+		);
+		options.forEach(function (opt){
+			$('#selection-drop' +'-' + number).append("<option id='" + opt + number + "' value='" + opt + "' selected>"+ opt + "</option>");
+		});
+		$('#selection-drop' +'-' + number).multiselect({
+			   height: "auto",
+			   minWidth: 250,
+			   
+			   
+			   click: function(event, ui){			   
+					$('#cases'  + '-' + number).val($('#selection-drop' +'-' + number).multiselect("getChecked").length);		
+					EME.calculateCases();
+					EME.plotDistNominal([[number, type]]);					
+			   }, 
+			   checkAll: function(){
+					$('#cases'  + '-' + number).val($('#selection-drop' +'-' + number).multiselect("getChecked").length);	
+					EME.calculateCases();
+					EME.plotDistNominal([[number, type]]);
+			   }, 
+			   uncheckAll: function(){
+					$('#cases'  + '-' + number).val($('#selection-drop' +'-' + number).multiselect("getChecked").length);
+					EME.calculateCases();
+					EME.plotDistNominal([[number, type]]);
+			   }
+			   
+			   
+			   
+			});
+				
+	
+			
+					
+		
+		EME.calculateCases();
+
+		EME.plotDistNominal([[number, type]]);
+		$("#factorTable").tablesorter({sortList:[[0,0],[2,1]], widgets: ['zebra']}); 
+	},
+	
 
 	calculateCases: function(){
 		var casesDic = {}
@@ -254,7 +343,7 @@ EME = {
 	
 	},
 
-	addSlider: function(number, name, lower, upper, dlower, dupper, index){
+	addSlider: function(number, name, lower, upper, dlower, dupper, index, type){
 		console.log("Adding Slider:" + number +"|" +  name +"|" +  lower+"|" +  upper+"|" +  dlower+"|" +  dupper+"|" + index+"|")
 		//This needs to be computed from number of cases
 		console.log(name.replace(/[\*]/g, ''));
@@ -270,7 +359,7 @@ EME = {
 					'<label for="rd1 '  + '-' + number +   '">Normal</label><br/>' +
 					'<input  type="radio" name="dist'  + '-' + number +   '" id="rd2 '  + '-' + number +   '" value="Equal"/>' + 
 					'<label for="rd2 '  + '-' + number +   '">Equal</label><br/>' + 
-					'</td><td><input class="cases ' + name.replace(/[\*,\s]/g, '') + '"size="2" maxlength="4" value="' + (parseInt(upper)-parseInt(lower)+1).toString() + '" id="cases'  + '-' + number +'"></input></td><td>'  + 
+					'</td><td><input class="cases ' + name.replace(/[\*,\s]/g, '') + '"size="2" maxlength="4" value="' + (parseInt(dupper)-parseInt(dlower)+1).toString() + '" id="cases'  + '-' + number +'"></input></td><td>'  + 
 					'<button id="another' + '-' + number + '">Another Range?</button>'				
 					+ '</td></tr>';
 					
@@ -284,7 +373,7 @@ EME = {
 		$('input[name="dist-' + number + '"]').change(function() {
 		
 
-			EME.plotDist([number])
+			EME.plotDist([[number,type]])
 		
 		
 		
@@ -295,7 +384,7 @@ EME = {
 			EME.calculateCases();
 				
 
-			EME.plotDist([number])
+			EME.plotDist([[number, type]])
 			
 			}
 		);
@@ -303,7 +392,7 @@ EME = {
 		$('#another' + '-' + number).click(function(){
 						var i = $(this).closest('tr').index();
 						console.log("Button Click");
-						EME.addSlider(number.toString() + '1', name + '*', lower, upper, dlower, dupper, i);
+						EME.addSlider(number.toString() + '1', name + '*', lower, upper, dlower, dupper, i, type);
 						$(this).remove();
 						}
 					);
@@ -315,13 +404,13 @@ EME = {
 		  range: true,
 		  min: parseInt(lower,10),
 		  max: parseInt(upper,10),
-		  values: [ parseInt(dlower,10), parseInt(dupper,10) ],
+		  values: [ parseInt(dlower,10) - 2, parseInt(dupper,10) + 2],//TODO remove 2's used as workaround for undef bug
 		  slide: function( event, ui ) {
 			
 			$( "#amountMin" + '-' + number ).val(ui.values[ 0 ]);
 			$( "#amountMax" + '-' + number ).val(ui.values[ 1 ] );
 
-			EME.plotDist([number])
+			EME.plotDist([[number, type]])
 		  }
 		});
 		$( "#amountMin" + '-' + number ).val($( "#slider-range" + '-' + number).slider( "values", 0 )).keyup(function() {
@@ -330,7 +419,7 @@ EME = {
 			var count = parseInt($("#totalCases").html().split(':')[1])
 			 
 			 low = Math.min(low, high);
-			EME.plotDist([number])
+			EME.plotDist([[number, type]])
 			$( "#slider-range" + '-' + number).slider('values', 0, low);
 		
 			});
@@ -339,7 +428,7 @@ EME = {
 			 var high =  parseInt($( "#amountMax" + '-' + number ).val(),10);
 			 var count = parseInt($("#totalCases").html().split(':')[1])
 			 high = Math.max(low, high);
-			EME.plotDist([number])
+			EME.plotDist([[number, type]])
 			$( "#slider-range" + '-' + number).slider('values', 1, high);
 		
 			});
@@ -347,21 +436,100 @@ EME = {
 		
 		EME.calculateCases();
 
-		EME.plotDist([number])
+		EME.plotDist([[number, type]])
 		$("#factorTable").tablesorter({sortList:[[0,0],[2,1]], widgets: ['zebra']}); 
+		
+		EME.plotDist([[number, type]])
+		
+		console.log("Model Data Ranges:");
+		console.log(EME.modelDataRanges);
 	},
 	
+	
+	//Type must be consistance accross input
+	plotDistNominal: function(lOfN){
+	
+	
+		d = {}
+		e = []
+		
+		var type = lOfN[0][1];
+		var caseTot = 0;
+		var idvCaseTot = 0;
+		for (num in lOfN){
+			var number = lOfN[num][0];
+			
+			var numbers = []
+			var factorName = (($("#cases-" + number)[0].className).split(' ')[1])
+			$("." + factorName).each(function(index, ele) {
+				var id = ele.id.split('-')[1]
+
+				var cases = ele.value;
+
+				caseTot += parseInt(cases);
+
+				numbers.push(id);
+				
+		
+		
+			});
+	
+		
+			for (n in numbers) {
+				var number = numbers[n]
+					var p = {}	
+					p.low = 1;
+					p.high =  $('#cases'  + '-' + number).val();
+					p.count = parseInt($("#totalCases").html().split(':')[1])
+					p.step = 1;
+					var caseCount = $("#cases-" + number).val();
+					p.percentage = caseCount/(caseTot *1.0);
+					idvCaseTot += caseCount;
+					var d1 = []; 
+					
+					for (var i = p.low; i <= p.high; i += p.step) {
+						d1.push([i, EME.uniformDensity(p.low,p.high,p.count,p.step, p.percentage)]);
+					}
+					
+					
+
+					for (tuple in d1){
+						d[d1[tuple][0]] = d[d1[tuple][0]] + d1[tuple][1] ||  d1[tuple][1];
+					
+					}
+				
+			
+
+				
+			}	
+		}
+		
+		for (tuple in d){
+				e.push([tuple, d[tuple]])
+			
+			
+			}
+		
+		$.plot($("#plot"), [e], {xaxis:{tickDecimals:0 }});	
+		
+		
+		EME.modelDataRanges[factorName] = [e,idvCaseTot];
+	
+	
+	
+	},
+	//Type must be consistance accross input
 	plotDist: function(lOfN){
 	
 	
 		d = {}
 		e = []
 		
-	
+		var type = lOfN[0][1];
 		var caseTot = 0;
 		var idvCaseTot = 0;
 		for (num in lOfN){
-			var number = lOfN[num];
+			var number = lOfN[num][0];
 			var numbers = []
 			var factorName = (($("#cases-" + number)[0].className).split(' ')[1])
 			$("." + factorName).each(function(index, ele) {
@@ -424,8 +592,16 @@ EME = {
 		
 		$.plot($("#plot"), [e], {xaxis:{tickDecimals:0 }});	
 		
-		EME.modelDataRanges[factorName] = [e,idvCaseTot];
-	
+		if (type =="RANGE") {
+			
+			EME.modelDataRanges[factorName] = [[[e[0][0] + "-" + e[e.length - 1][0],1/numbers.length]],idvCaseTot];
+		}
+		else {
+			EME.modelDataRanges[factorName] = [e,idvCaseTot];
+		
+		}
+		
+		
 	
 	
 	},
@@ -479,9 +655,15 @@ EME = {
 	},
 	
 	sampleData: function(arr, nsamples){
+		//arr = [[value, probability] ....]
+		nsamples = parseInt(nsamples);
+		console.log("Sampling " + nsamples + " from: ")
+		console.log(arr)
 		var count = 0;
 		var samplebin = [];
 		var samples = [];
+		//Create an array that has possible samples duplicated a number of times
+		//relative to their probability
 		for(var x=0; x<arr.length; x++){
 			count =  Math.round(arr[x][1] * 1000);
 			for(var j=0; j< count; j++){
@@ -489,11 +671,26 @@ EME = {
 			
 			}
 		}
+		console.log("SampleBin: ");
+		console.log(samplebin);
 		var length = samplebin.length
+		//Randomly select a sample from the list
 		for (var x=0; x<nsamples; x++){
+			length = samplebin.length;
 			rN = Math.floor(Math.random() * (length + 1));
-			samples.push(samplebin[rN])
+			var sample = samplebin[rN]
+			samples.push(sample)
+			//Remove all instances of that sample from the list for sampling w/out replacement
+			for (var i=samplebin.length-1; i>=0; i--) {
+				if (samplebin[i] === sample) {
+					samplebin.splice(i, 1);
+				}
+			}
+
 		}
+		console.log("Samples: ");
+		console.log(samples);
+		
 		return samples;
 		
 	
@@ -504,7 +701,7 @@ EME = {
 	
 	
 	
-	modelDataRanges: {},
+	
 	
 	generateModelRuns: function(){
 		var datas = [];
@@ -513,15 +710,17 @@ EME = {
 		var modelInputs = [];
 		var modelInputList = [];
 		
+		
+		//model.inputs.sort();
 		for (i in model.inputs){
 			
 			var input = model.inputs[i];
-			if(inputs.hasOwnProperty(i) &&  ( input.type == "FLOAT" || input.type == "INTEGER")){
-				
-				modelInputs.push(input.name);
-			}
+			modelInputs.push(input.name);
+
 		
 		}
+		//Ensures that the values and names will match up
+		//modelInputs.sort();
 		
 		
 		
@@ -608,53 +807,35 @@ EME = {
 		$.ajax({
 		   type: "POST",
 		   data: JSON.stringify(runs),
-		   //url: "https://a2c2srv.mitre.org:8443/crystal-a2c2/eme/models/1/run",
-		   url: "http://crystal.mitre.org:8080/crystal-a2c2/eme/models/1/run",
+		   url: EME.hostName + "crystal-a2c2/eme/models/" + EME.currentModel.id + "/run",
 		   contentType:"application/json;",
 		   datatype: "json",
 		   success: function(msg){
 				var bjid = msg["batchJob"];
 				console.log(bjid)
-				var modelId = "1";
 				$('#results').html('Simulation Complete - Scoring Model<img src="./images/loading.gif" />')
-				$.ajax({
-				   type: "POST",
-				   data: {},
-					// url: "https://a2c2srv.mitre.org:8443/crystal-a2c2/sme/models/" + modelId + "/run/" + bjid,
-				   url: "http://crystal.mitre.org:8080/crystal-a2c2/sme/models/" + modelId + "/run/" + bjid,
-				   dataType:"json",
-				   contentType:"application/json;",
-				   success: function(msg){
-				   
-				   //TODO
-					$('#results').html("Would send to tailor if working")
-						/*
+				$('#results').html("Finished Job #" + bjid)
+				
+				//This is for linking to tailorcore 
+				if (EME.hostName == "************"){
+					$('#results').html("Sending to tailor")
+						
 						$.ajax({
 						   type: "PUT",
-						   data: {source: {Url: "https://tinker.mitre.org:8443/proxy_http/crystal.mitre.org:8080/crystal-a2c2/workspace/getcsv/" + msg.scoringModelID}},
-						   //data: {source: {Url: "https://a2c2srv.mitre.org:8443/crystal-a2c2/workspace/getcsv/" + msg.scoringModelID}},
-						   url: "https://a2c2srv.mitre.org:8443/tailorcore/sources/19.json",
-						   url: "https://tinker.mitre.org:8443/tailorcore/sources/19.json",
+						   data: {source: {Url: "***********/crystal-a2c2/eme/resultsets/" + bjid}},
+						   url: "***********/tailorcore/sources/********.json",
 						   dataType:"json",
 						   success: function(msg){
 								
-								$('#results').html("Scoring Complete")
+								$('#results').html("Finished Job #" + bjid)
 
 						   }
 						});
-							*/
+							
 						//spit out //sme/resultsets/{id}
-
-				   }
-				});
-				
-				
-				
-				
-				//SCORE BJ in an empty Post
-				//spit out //sme/resultsets/{id}
-				console.log(msg);
-		   }
+				}
+			}
+		   
 		});
 		
 		
